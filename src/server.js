@@ -1,42 +1,38 @@
 import express from "express";
-import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
 
-// ✅ CONFIGURAÇÃO DO CORS (PERMITE FRONTEND DA VERCEL)
+// ✅ CORS liberado para qualquer origem (resolve erro do navegador)
 app.use(cors({
-  origin: [
-    "https://sistema-vendas-react-8mm87gdz7-learnevolutions-projects.vercel.app", // seu site na Vercel
-    "http://localhost:5173" // para testes locais
-  ],
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 app.use(express.json());
 
-// ✅ CONEXÃO COM O BANCO MONGODB
+// ✅ Conexão MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado!"))
-  .catch(err => console.error("❌ Erro ao conectar no MongoDB:", err));
+  .catch(err => console.error("❌ Erro ao conectar ao MongoDB:", err));
 
-// ✅ ROTAS DE CLIENTES
+// ✅ Importa e usa as rotas
 import clientesRouter from "./routes/clientes.js";
-app.use("/clientes", clientesRouter);
-
-// ✅ ROTAS DE PRODUTOS
 import produtosRouter from "./routes/produtos.js";
+
+app.use("/clientes", clientesRouter);
 app.use("/produtos", produtosRouter);
 
-// ✅ ROTA PADRÃO
+// ✅ Rota inicial (teste)
 app.get("/", (req, res) => {
-  res.send("API do Sistema de Vendas está online 🚀");
+  res.send("🚀 API do Sistema de Vendas online e com CORS liberado!");
 });
 
-// ✅ PORTA DO SERVIDOR
+// ✅ Inicia servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🔥 Servidor rodando na porta ${PORT}`));
