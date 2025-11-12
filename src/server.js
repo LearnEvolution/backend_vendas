@@ -14,19 +14,26 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const app = express();
 app.use(express.json());
 
-// 🔥 Permitir acesso da Vercel e localhost (para testes)
+// ✅ Configuração correta de CORS
 app.use(
   cors({
     origin: [
-      "https://sistema-vendas-react.vercel.app", // Frontend hospedado
-      "http://localhost:5173", // Ambiente local do Vite
+      "https://sistema-vendas-react.vercel.app", // domínio principal do seu front
+      "https://sistema-vendas-react-p4mbmf9sc-learnevolutions-projects.vercel.app", // domínio temporário da Vercel
+      "http://localhost:5173", // ambiente local de desenvolvimento
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// Importa rotas
+// Teste rápido (rota raiz)
+app.get("/", (req, res) => {
+  res.json({ mensagem: "🚀 API do Sistema de Vendas está online!" });
+});
+
+// Rotas
 import clientesRoutes from "./routes/clientes.js";
 import produtosRoutes from "./routes/produtos.js";
 app.use("/clientes", clientesRoutes);
