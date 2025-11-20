@@ -4,8 +4,8 @@ import { register, login } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// Rotas corrigidas para coincidir com o controller
-router.post("/register", register);   // <-- note que aqui é /register
+// Rotas de autenticação
+router.post("/register", register);
 router.post("/login", login);
 
 export default router;
