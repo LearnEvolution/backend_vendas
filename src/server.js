@@ -14,15 +14,12 @@ const app = express();
 // ---------------------
 // CORS
 // ---------------------
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://sistema-vendas-react.vercel.app"
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
