@@ -16,19 +16,17 @@ export async function register(req, res) {
       return res.status(400).json({ msg: "Usuário já existe. Faça login." });
     }
 
-    // Criptografar senha
-    const senhaHash = await bcrypt.hash(senha, 10);
-
-    // Criar cliente
+    // NÃO precisamos hashear aqui, o model já faz isso automaticamente!
     await Cliente.create({
       nome,
       email,
       telefone,
-      senha: senhaHash,
+      senha, // senha pura → o schema fará o hash no pre("save")
     });
 
     res.status(201).json({ msg: "Cadastro realizado com sucesso!" });
   } catch (err) {
+    console.error("Erro no register:", err);
     res.status(500).json({ erro: err.message });
   }
 }
@@ -43,7 +41,7 @@ export async function login(req, res) {
       return res.status(400).json({ msg: "Usuário não encontrado." });
     }
 
-    // Verifica senha
+    // Verifica senha com bcrypt
     const senhaOk = await bcrypt.compare(senha, cliente.senha);
     if (!senhaOk) {
       return res.status(401).json({ msg: "Senha incorreta!" });
@@ -58,6 +56,7 @@ export async function login(req, res) {
 
     res.json({ msg: "Login bem-sucedido!", token });
   } catch (err) {
+    console.error("Erro no login:", err);
     res.status(500).json({ erro: err.message });
   }
 }
