@@ -3,35 +3,48 @@ import Cliente from "../models/Cliente.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
+import { validateEmailReal } from "../utils/validateEmail.js";
+
 dotenv.config();
 
+// ================================
 // REGISTRAR CLIENTE
+// ================================
 export async function register(req, res) {
   try {
     const { nome, email, telefone, senha } = req.body;
 
-    // Verifica se já existe
+    // 1️⃣ Verifica se email é real (API)
+    const emailValido = await validateEmailReal(email);
+    if (!emailValido) {
+      return res.status(400).json({ msg: "E-mail inválido ou inexistente." });
+    }
+
+    // 2️⃣ Verifica se já existe no banco
     const existe = await Cliente.findOne({ email });
     if (existe) {
       return res.status(400).json({ msg: "Usuário já existe. Faça login." });
     }
 
-    // NÃO precisamos hashear aqui, o model já faz isso automaticamente!
+    // 3️⃣ Cria usuário
     await Cliente.create({
       nome,
       email,
       telefone,
-      senha, // senha pura → o schema fará o hash no pre("save")
+      senha, // o model faz o hash automaticamente
     });
 
-    res.status(201).json({ msg: "Cadastro realizado com sucesso!" });
+    return res.status(201).json({ msg: "Cadastro realizado com sucesso!" });
+
   } catch (err) {
     console.error("Erro no register:", err);
-    res.status(500).json({ erro: err.message });
+    return res.status(500).json({ erro: err.message });
   }
 }
 
+// ================================
 // LOGIN
+// ================================
 export async function login(req, res) {
   try {
     const { email, senha } = req.body;
@@ -41,7 +54,7 @@ export async function login(req, res) {
       return res.status(400).json({ msg: "Usuário não encontrado." });
     }
 
-    // Verifica senha com bcrypt
+    // Confere senha
     const senhaOk = await bcrypt.compare(senha, cliente.senha);
     if (!senhaOk) {
       return res.status(401).json({ msg: "Senha incorreta!" });
@@ -54,9 +67,11 @@ export async function login(req, res) {
       { expiresIn: "7d" }
     );
 
-    res.json({ msg: "Login bem-sucedido!", token });
+    return res.json({ msg: "Login bem-sucedido!", token });
+
   } catch (err) {
     console.error("Erro no login:", err);
-    res.status(500).json({ erro: err.message });
+    return res.status(500).json({ erro: err.message });
   }
 }
+
