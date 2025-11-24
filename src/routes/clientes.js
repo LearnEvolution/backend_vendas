@@ -3,7 +3,7 @@ import Cliente from "../models/Cliente.js";
 
 const router = express.Router();
 
-// Rota para listar todos os clientes
+// === LISTAR CLIENTES ===
 router.get("/", async (req, res) => {
   try {
     const clientes = await Cliente.find();
@@ -14,16 +14,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Rota para adicionar cliente
-router.post("/", async (req, res) => {
-  try {
-    const novoCliente = new Cliente(req.body);
-    await novoCliente.save();
-    res.json({ mensagem: "Cliente cadastrado com sucesso!" });
-  } catch (err) {
-    console.error("Erro ao cadastrar cliente:", err);
-    res.status(500).json({ erro: "Erro ao cadastrar cliente" });
-  }
-});
+// 🚫 REMOVIDO: nada de cadastro aqui.
+// O cadastro deve ser feito em /auth/register
 
 export default router;

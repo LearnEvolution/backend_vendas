@@ -1,65 +1,66 @@
+// src/controllers/authController.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import Cliente from "../models/Cliente.js";
 
 // ===== REGISTER =====
 export const register = async (req, res) => {
   try {
-    const { name, cpf, email, password } = req.body;
+    const { nome, telefone, email, senha } = req.body;
 
     // VALIDAÇÃO FORTE DE EMAIL
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Email inválido" });
+      return res.status(400).json({ msg: "Email inválido" });
     }
 
     // VALIDA SENHA (mínimo 4 caracteres)
-    if (!password || password.length < 4) {
+    if (!senha || senha.length < 4) {
       return res
         .status(400)
-        .json({ error: "A senha deve ter pelo menos 4 caracteres" });
+        .json({ msg: "A senha deve ter pelo menos 4 caracteres" });
     }
 
     // CHECA USUÁRIO EXISTENTE
-    const existingUser = await User.findOne({ email });
+    const existingUser = await Cliente.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: "Email já cadastrado" });
+      return res.status(400).json({ msg: "Email já cadastrado" });
     }
 
     // HASH DA SENHA
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(senha, 10);
 
     // SALVA NO BANCO
-    await User.create({
-      name,
-      cpf,
+    await Cliente.create({
+      nome,
+      telefone,
       email,
-      password: hashedPassword,
+      senha: hashedPassword,
     });
 
     res.json({
       success: true,
-      message: "Usuário registrado com sucesso!",
+      msg: "Usuário registrado com sucesso!",
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erro no servidor" });
+    res.status(500).json({ msg: "Erro no servidor" });
   }
 };
 
 // ===== LOGIN =====
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, senha } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await Cliente.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: "Usuário não encontrado" });
+      return res.status(400).json({ msg: "Usuário não encontrado" });
     }
 
-    const validPass = await bcrypt.compare(password, user.password);
+    const validPass = await bcrypt.compare(senha, user.senha);
     if (!validPass) {
-      return res.status(400).json({ error: "Senha incorreta" });
+      return res.status(400).json({ msg: "Senha incorreta" });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -68,11 +69,11 @@ export const login = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Login realizado com sucesso!",
+      msg: "Login realizado com sucesso!",
       token,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Erro no servidor" });
+    res.status(500).json({ msg: "Erro no servidor" });
   }
 };
