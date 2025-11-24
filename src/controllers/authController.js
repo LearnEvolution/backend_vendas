@@ -1,12 +1,3 @@
-// src/controllers/authController.js
-import Cliente from "../models/Cliente.js";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
-import { validateEmailReal } from "../utils/validateEmail.js";
-
-dotenv.config();
-
 // ================================
 // REGISTRAR CLIENTE
 // ================================
@@ -14,10 +5,11 @@ export async function register(req, res) {
   try {
     const { nome, email, telefone, senha } = req.body;
 
-    // 1️⃣ Verifica se email é real (API)
-    const emailValido = await validateEmailReal(email);
-    if (!emailValido) {
-      return res.status(400).json({ msg: "E-mail inválido ou inexistente." });
+    // 1️⃣ Validação simples de e-mail (aceita Gmail, Hotmail, etc)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ msg: "Formato de e-mail inválido." });
     }
 
     // 2️⃣ Verifica se já existe no banco
@@ -41,37 +33,3 @@ export async function register(req, res) {
     return res.status(500).json({ erro: err.message });
   }
 }
-
-// ================================
-// LOGIN
-// ================================
-export async function login(req, res) {
-  try {
-    const { email, senha } = req.body;
-
-    const cliente = await Cliente.findOne({ email });
-    if (!cliente) {
-      return res.status(400).json({ msg: "Usuário não encontrado." });
-    }
-
-    // Confere senha
-    const senhaOk = await bcrypt.compare(senha, cliente.senha);
-    if (!senhaOk) {
-      return res.status(401).json({ msg: "Senha incorreta!" });
-    }
-
-    // Gera token
-    const token = jwt.sign(
-      { id: cliente._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.json({ msg: "Login bem-sucedido!", token });
-
-  } catch (err) {
-    console.error("Erro no login:", err);
-    return res.status(500).json({ erro: err.message });
-  }
-}
-
