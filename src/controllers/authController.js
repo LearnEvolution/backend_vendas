@@ -1,47 +1,78 @@
-// Validação forte de e-mail (não aceita email@email.com.com)
-function isValidEmail(email) {
-  const regex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-  return regex.test(email);
-}
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-// Validação de senha (mínimo 4 chars)
-function isValidPassword(password) {
-  return password && password.length >= 4;
-}
-
-export async function register(req, res) {
+// ===== REGISTER =====
+export const register = async (req, res) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, cpf, email, password } = req.body;
 
-    // ---- VALIDAR E-MAIL ----
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ message: "E-mail inválido!" });
+    // VALIDAÇÃO FORTE DE EMAIL
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Email inválido" });
     }
 
-    // ---- VALIDAR SENHA ----
-    if (!isValidPassword(password)) {
+    // VALIDA SENHA (mínimo 4 caracteres)
+    if (!password || password.length < 4) {
       return res
         .status(400)
-        .json({ message: "A senha deve ter no mínimo 4 caracteres." });
+        .json({ error: "A senha deve ter pelo menos 4 caracteres" });
     }
 
-    // ---- VALIDAR TELEFONE ----
-    if (!/^\d{10,11}$/.test(phone)) {
-      return res.status(400).json({ message: "Telefone inválido!" });
+    // CHECA USUÁRIO EXISTENTE
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email já cadastrado" });
     }
 
-    // ---- VALIDAR NOME ----
-    if (!name || name.length < 3) {
-      return res.status(400).json({ message: "Nome inválido!" });
-    }
+    // HASH DA SENHA
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Continua o cadastro (como já estava no seu código)
-    const user = await User.create({ name, phone, email, password });
+    // SALVA NO BANCO
+    await User.create({
+      name,
+      cpf,
+      email,
+      password: hashedPassword,
+    });
 
-    return res.status(201).json(user);
-
+    res.json({
+      success: true,
+      message: "Usuário registrado com sucesso!",
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Erro interno no servidor" });
+    res.status(500).json({ error: "Erro no servidor" });
   }
-}
+};
+
+// ===== LOGIN =====
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: "Usuário não encontrado" });
+    }
+
+    const validPass = await bcrypt.compare(password, user.password);
+    if (!validPass) {
+      return res.status(400).json({ error: "Senha incorreta" });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.json({
+      success: true,
+      message: "Login realizado com sucesso!",
+      token,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro no servidor" });
+  }
+};
