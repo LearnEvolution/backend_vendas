@@ -7,6 +7,13 @@ import jwt from "jsonwebtoken";
 export const register = async (req, res) => {
   try {
     const { nome, telefone, email, senha } = req.body;
+      
+// Bloqueia email curto: mínimo 5 caracteres antes do @
+const parteLocal = email.split("@")[0];
+if (parteLocal.length < 5) {
+  return res.status(400).json({ msg: "O email deve ter ao menos 5 caracteres antes do @" });
+}
+      
 
     // Validação do email
     const emailValido = await validarEmail(email);
