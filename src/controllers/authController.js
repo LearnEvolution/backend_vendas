@@ -2,28 +2,34 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Cliente from "../models/Cliente.js";
-import fetch from "node-fetch";
+import axios from "axios";
 
-// ===== FUNÇÃO PARA VALIDAR EMAIL REAL =====
-async function validarEmailReal(email) {
+// Função para validar e-mail via Abstract API (somente domínio / formato)
+async function validarEmail(email) {
+  const apiKey = process.env.ABSTRACT_EMAIL_API_KEY;
+
   try {
-    const apiKey = process.env.ABSTRACT_EMAIL_API_KEY;
+    const url = `https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`;
+    const response = await axios.get(url);
+    const data = response.data;
 
-    const response = await fetch(
-      `https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`
-    );
-
-    const data = await response.json();
-
-    // Se o serviço não conseguir validar, ou se marcar como inválido
-    if (!data.is_valid_format.value || data.deliverability === "UNDELIVERABLE") {
+    // 1. Formato inválido → BLOQUEIA
+    if (!data.is_valid_format.value) {
       return false;
     }
 
+    // 2. Domínio inválido → BLOQUEIA
+    if (!data.is_valid_domain.value) {
+      return false;
+    }
+
+    // 3. SMTP falhou → NÃO bloqueia (provedores grandes sempre bloqueiam)
     return true;
+
   } catch (error) {
-    console.error("Erro ao validar email real:", error);
-    return false;
+    console.error("Erro ao validar e-mail:", error);
+    // Se a API cair, NÃO bloquear o usuário
+    return true;
   }
 }
 
@@ -32,35 +38,29 @@ export const register = async (req, res) => {
   try {
     const { nome, telefone, email, senha } = req.body;
 
-    // 1️⃣ VALIDAÇÃO SIMPLES DE FORMATO (regex)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ msg: "Formato de email inválido" });
+    // ========= VALIDAÇÃO DE E-MAIL =========
+    const emailValido = await validarEmail(email);
+    if (!emailValido) {
+      return res.status(400).json({ msg: "Email inválido ou domínio inexistente" });
     }
 
-    // 2️⃣ VALIDAÇÃO REAL DO EMAIL (API)
-    const emailReal = await validarEmailReal(email);
-    if (!emailReal) {
-      return res.status(400).json({ msg: "Email não é real ou não existe" });
-    }
-
-    // Senha mínima
+    // ========= VALIDAÇÃO DE SENHA =========
     if (!senha || senha.length < 4) {
       return res
         .status(400)
         .json({ msg: "A senha deve ter pelo menos 4 caracteres" });
     }
 
-    // Usuário já existe?
+    // ========= CHECA SE O EMAIL JÁ EXISTE NO BANCO =========
     const existingUser = await Cliente.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "Email já cadastrado" });
     }
 
-    // Hash da senha
+    // ========= HASH DA SENHA =========
     const hashedPassword = await bcrypt.hash(senha, 10);
 
-    // Criar usuário
+    // ========= SALVA NO BANCO =========
     await Cliente.create({
       nome,
       telefone,
@@ -72,6 +72,7 @@ export const register = async (req, res) => {
       success: true,
       msg: "Usuário registrado com sucesso!",
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Erro no servidor" });
@@ -107,4 +108,3 @@ export const login = async (req, res) => {
     res.status(500).json({ msg: "Erro no servidor" });
   }
 };
-
