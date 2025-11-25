@@ -1,5 +1,6 @@
 import Cliente from "../models/Cliente.js";
 import { validarEmail } from "../utils/validarEmail.js";
+import { validarTelefone, formatarTelefone } from "../utils/validarTelefone.js";
 import jwt from "jsonwebtoken";
 
 // ===== REGISTER =====
@@ -12,6 +13,11 @@ export const register = async (req, res) => {
     if (!emailValido) {
       return res.status(400).json({ msg: "Email inválido ou domínio inexistente" });
     }
+// Validação do telefone
+if (!validarTelefone(telefone)) {
+  return res.status(400).json({ msg: "Telefone inválido. Use o formato (DDD) 99999-9999." });
+}
+const telefoneFormatado = formatarTelefone(telefone);
 
     // Senha mínima
 // Senha entre 8 e 10 caracteres
@@ -28,7 +34,7 @@ if (!senha || senha.length < 8 || senha.length > 10) {
     // Salva usuário
     await Cliente.create({
       nome,
-      telefone,
+      telefone: telefoneFormatado,
       email,
       senha, // hash é feito no model
     });
