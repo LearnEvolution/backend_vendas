@@ -13,17 +13,24 @@ export const register = async (req, res) => {
     if (!emailValido) {
       return res.status(400).json({ msg: "Email inválido ou domínio inexistente" });
     }
-// Validação do telefone
-if (!validarTelefone(telefone)) {
-  return res.status(400).json({ msg: "Telefone inválido. Use o formato (DDD) 99999-9999." });
-}
-const telefoneFormatado = formatarTelefone(telefone);
 
-    // Senha mínima
-// Senha entre 8 e 10 caracteres
-if (!senha || senha.length < 8 || senha.length > 10) {
-  return res.status(400).json({ msg: "A senha deve ter entre 8 e 10 caracteres" });
-}
+    // Validação do telefone
+    if (!validarTelefone(telefone)) {
+      return res.status(400).json({ msg: "Telefone inválido. Informe apenas números." });
+    }
+
+    const telefoneFormatado = formatarTelefone(telefone);
+
+    // Verificar telefone duplicado
+    const telefoneExistente = await Cliente.findOne({ telefone: telefoneFormatado });
+    if (telefoneExistente) {
+      return res.status(400).json({ msg: "Telefone já cadastrado" });
+    }
+
+    // Senha entre 8 e 10 caracteres
+    if (!senha || senha.length < 8 || senha.length > 10) {
+      return res.status(400).json({ msg: "A senha deve ter entre 8 e 10 caracteres" });
+    }
 
     // Verifica se o email já existe
     const existingUser = await Cliente.findOne({ email });
