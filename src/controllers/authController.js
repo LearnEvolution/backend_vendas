@@ -14,9 +14,10 @@ export const register = async (req, res) => {
     }
 
     // Senha mínima
-    if (!senha || senha.length < 4) {
-      return res.status(400).json({ msg: "A senha deve ter pelo menos 4 caracteres" });
-    }
+// Senha entre 8 e 10 caracteres
+if (!senha || senha.length < 8 || senha.length > 10) {
+  return res.status(400).json({ msg: "A senha deve ter entre 8 e 10 caracteres" });
+}
 
     // Verifica se o email já existe
     const existingUser = await Cliente.findOne({ email });
