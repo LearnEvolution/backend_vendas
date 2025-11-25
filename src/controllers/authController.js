@@ -1,10 +1,11 @@
 // src/controllers/authController.js
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Cliente from "../models/Cliente.js";
 import axios from "axios";
 
-// Função para validar e-mail via Abstract API (somente domínio / formato)
+// Função para validar e-mail via Abstract API (apenas formato/domínio)
 async function validarEmail(email) {
   const apiKey = process.env.ABSTRACT_EMAIL_API_KEY;
 
@@ -13,23 +14,18 @@ async function validarEmail(email) {
     const response = await axios.get(url);
     const data = response.data;
 
-    // 1. Formato inválido → BLOQUEIA
-    if (!data.is_valid_format.value) {
-      return false;
-    }
+    // Formato inválido → BLOQUEIA
+    if (!data.is_valid_format.value) return false;
 
-    // 2. Domínio inválido → BLOQUEIA
-    if (!data.is_valid_domain.value) {
-      return false;
-    }
+    // Domínio inválido → BLOQUEIA
+    if (!data.is_valid_domain.value) return false;
 
-    // 3. SMTP falhou → NÃO bloqueia (provedores grandes sempre bloqueiam)
+    // SMTP falhou → NÃO bloquear (Google, Microsoft bloqueiam)
     return true;
 
   } catch (error) {
     console.error("Erro ao validar e-mail:", error);
-    // Se a API cair, NÃO bloquear o usuário
-    return true;
+    return true; // Se API cair → não bloquear
   }
 }
 
@@ -38,29 +34,27 @@ export const register = async (req, res) => {
   try {
     const { nome, telefone, email, senha } = req.body;
 
-    // ========= VALIDAÇÃO DE E-MAIL =========
+    // Validação do email
     const emailValido = await validarEmail(email);
     if (!emailValido) {
       return res.status(400).json({ msg: "Email inválido ou domínio inexistente" });
     }
 
-    // ========= VALIDAÇÃO DE SENHA =========
+    // Senha mínima
     if (!senha || senha.length < 4) {
-      return res
-        .status(400)
-        .json({ msg: "A senha deve ter pelo menos 4 caracteres" });
+      return res.status(400).json({ msg: "A senha deve ter pelo menos 4 caracteres" });
     }
 
-    // ========= CHECA SE O EMAIL JÁ EXISTE NO BANCO =========
+    // Verifica se já existe
     const existingUser = await Cliente.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "Email já cadastrado" });
     }
 
-    // ========= HASH DA SENHA =========
+    // Hash da nova senha
     const hashedPassword = await bcrypt.hash(senha, 10);
 
-    // ========= SALVA NO BANCO =========
+    // Salva usuário
     await Cliente.create({
       nome,
       telefone,
@@ -89,7 +83,27 @@ export const login = async (req, res) => {
       return res.status(400).json({ msg: "Usuário não encontrado" });
     }
 
-    const validPass = await bcrypt.compare(senha, user.senha);
+    // Detecta se senha no banco é hash ou texto puro
+    const senhaEhHash =
+      user.senha.startsWith("$2a$") || user.senha.startsWith("$2b$");
+
+    let validPass = false;
+
+    if (!senhaEhHash) {
+      // Senha antiga (texto puro)
+      validPass = senha === user.senha;
+
+      // Se senha antiga estiver correta → converter para hash
+      if (validPass) {
+        const novaHash = await bcrypt.hash(senha, 10);
+        user.senha = novaHash;
+        await user.save();
+      }
+    } else {
+      // Senha nova (bcrypt)
+      validPass = await bcrypt.compare(senha, user.senha);
+    }
+
     if (!validPass) {
       return res.status(400).json({ msg: "Senha incorreta" });
     }
@@ -103,8 +117,10 @@ export const login = async (req, res) => {
       msg: "Login realizado com sucesso!",
       token,
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Erro no servidor" });
   }
 };
+
