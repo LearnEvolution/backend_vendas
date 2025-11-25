@@ -1,5 +1,5 @@
 import Cliente from "../models/Cliente.js";
-import validarEmail from "../utils/validarEmail.js";
+import { validarEmail } from "../utils/validarEmail.js";
 import jwt from "jsonwebtoken";
 
 // ===== REGISTER =====
