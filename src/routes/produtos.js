@@ -1,20 +1,17 @@
-// src/routes/produtos.js
+// back: src/routes/produtos.js
 import express from "express";
 import {
   criarProduto,
   listarProdutos,
   excluirProduto
 } from "../controllers/produtoController.js";
+import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Listar produtos
-router.get("/", listarProdutos);
-
-// Criar produto
-router.post("/", criarProduto);
-
-// Excluir produto
-router.delete("/:id", excluirProduto);
+// Todas as rotas de produtos ficam protegidas pelo token JWT
+router.get("/", auth, listarProdutos);
+router.post("/", auth, criarProduto);
+router.delete("/:id", auth, excluirProduto);
 
 export default router;

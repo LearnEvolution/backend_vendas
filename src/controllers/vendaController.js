@@ -19,10 +19,9 @@ export const criarVenda = async (req, res) => {
       return res.status(400).json({ msg: "Carrinho vazio" });
     }
 
-    // Montar itens com preço atual do produto e subtotal
     const itensComDetalhes = [];
-
     let total = 0;
+
     for (const item of itens) {
       if (!item.produto || !item.quantidade || item.quantidade <= 0) {
         return res.status(400).json({ msg: "Item inválido no carrinho" });
@@ -30,7 +29,9 @@ export const criarVenda = async (req, res) => {
 
       const produtoDb = await Produto.findById(item.produto);
       if (!produtoDb) {
-        return res.status(400).json({ msg: `Produto não encontrado: ${item.produto}` });
+        return res
+          .status(400)
+          .json({ msg: `Produto não encontrado: ${item.produto}` });
       }
 
       const precoUnitario = Number(produtoDb.preco || 0);
@@ -42,7 +43,7 @@ export const criarVenda = async (req, res) => {
         nome: produtoDb.nome || "",
         precoUnitario,
         quantidade,
-        subtotal
+        subtotal,
       });
 
       total += subtotal;
@@ -54,10 +55,9 @@ export const criarVenda = async (req, res) => {
       itens: itensComDetalhes,
       total,
       formaPagamento: formaPagamento || "dinheiro",
-      cliente: cliente || null
+      cliente: cliente || null,
+      usuarioEmail: req.user.email,   // 🔥 IMPORTANTE
     });
-
-    // Opcional: se quiser baixar estoque, adicionar lógica aqui (não implementado por segurança)
 
     return res.status(201).json({ success: true, venda });
   } catch (err) {
@@ -67,12 +67,15 @@ export const criarVenda = async (req, res) => {
 };
 
 /**
- * Listar vendas (simples)
+ * Listar vendas DO USUÁRIO LOGADO
  * GET /vendas
  */
 export const listarVendas = async (req, res) => {
   try {
-    const vendas = await Venda.find().sort({ criadoEm: -1 }).limit(100);
+    const vendas = await Venda.find({ usuarioEmail: req.user.email }) // 🔥 FILTRO AQUI
+      .sort({ criadoEm: -1 })
+      .limit(100);
+
     return res.json({ success: true, vendas });
   } catch (err) {
     console.error("Erro listarVendas:", err);

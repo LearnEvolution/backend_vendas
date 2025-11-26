@@ -14,6 +14,7 @@ const VendaSchema = new mongoose.Schema({
   total: { type: Number, required: true },
   formaPagamento: { type: String, default: "dinheiro" }, // opcional
   cliente: { type: String, default: null },
+  usuarioEmail: { type: String, required: true },
   criadoEm: { type: Date, default: Date.now }
 });
 
