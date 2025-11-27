@@ -1,4 +1,3 @@
-/ back: src/routes/clientes.js
 import express from "express";
 import Cliente from "../models/Cliente.js";
 import { auth } from "../middleware/auth.js";
@@ -23,7 +22,7 @@ router.post("/", auth, async (req, res) => {
     const cliente = await Cliente.create({
       nome,
       telefone,
-      usuarioEmail, // <-- usa o campo que o modelo exige
+      usuarioEmail,
     });
 
     res.status(201).json({
@@ -32,27 +31,30 @@ router.post("/", auth, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Erro ao criar cliente:", 
-    err);
-    // Mensagem mais amigável pro front
-    res.status(500).json({ erro: "Erro ao 
-    criar cliente" });
+    console.error("Erro ao criar cliente:", err);
+    res.status(500).json({ erro: "Erro ao criar cliente" });
   }
 });
-/** * LISTAR CLIENTES * GET /clientes * 
- retorna somente os clientes do usuário logado 
+
+/**
+ * LISTAR CLIENTES
+ * GET /clientes
+ * retorna somente os clientes do usuário logado
  */
-router.get("/", auth, async (req, res) => { 
+router.get("/", auth, async (req, res) => {
   try {
-    const usuarioEmail = req.user.email; const 
-    clientes = await Cliente.find({ 
-    usuarioEmail })
-      .sort({ criadoEm: -1 }); 
+    const usuarioEmail = req.user.email;
+
+    const clientes = await Cliente.find({
+      usuarioEmail
+    }).sort({ dataCadastro: -1 });
+
     res.json(clientes);
+
   } catch (err) {
-    console.error("Erro ao buscar clientes:", 
-    err); res.status(500).json({ erro: "Erro 
-    ao buscar clientes" });
+    console.error("Erro ao buscar clientes:", err);
+    res.status(500).json({ erro: "Erro ao buscar clientes" });
   }
 });
+
 export default router;
